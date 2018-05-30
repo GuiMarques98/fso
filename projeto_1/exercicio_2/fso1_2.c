@@ -22,8 +22,14 @@ Integrantes:
 #define help_student() usleep(rand() % 500)
 
 // Structs
+typedef struct c{
+    pthread_cond_t cond;
+    pthread_mutex_t block;
+} chair_t;
+
 typedef struct f {
     int chair[QUEUE_MAX];
+    chair_t chair_action[QUEUE_MAX];
     int start;
     int number_of_elements;
 } queue_t;
@@ -39,24 +45,26 @@ int is_queue_available();
 int add_in_queue(int);
 int remove_from_queue();
 int get_queue_end();
-int in_q(int);
-int out_q();
+void destroy_queue();
 
 
 // Global variables
+int helped_students = 0;
 sem_t teacher;
 pthread_mutex_t lock;
 queue_t queue;
 
 //  MAIN
 int main(int argc, char const *argv[]) {
+
+    // Inicializations
     srand(time(NULL));
     sem_init(&teacher, 0, 1);
     pthread_t students[STUDENTS];
     pthread_mutex_init(&lock, NULL);
+    init_queue();
 
     int i = 0;
-    
     // Creating threads
     for(i=0; i < STUDENTS; ++i) {
         pthread_create(&students[i], NULL, student, (void *)i);
@@ -67,7 +75,8 @@ int main(int argc, char const *argv[]) {
         pthread_join(students[i], NULL);
     }
 
-
+    // Ending
+    destroy_queue();
     sem_destroy(&teacher);
     pthread_mutex_destroy(&lock);
     return 0;
@@ -78,6 +87,7 @@ int main(int argc, char const *argv[]) {
 void* student(void* data){
     int help = 0;
     int code = (int) data;
+    printf("Estudante %d\n", code);
     do {
         if(check_AE(code)){
             help++;
@@ -93,9 +103,14 @@ void* student(void* data){
 }
 
 void* AE(void* data) {
-    // do {
-    //     /* code */
-    // } while(helped_students == STUDENTS * 3);
+    int sem_status = 0;
+    do {
+        pthread_mutex_lock(&lock);
+        sem_getvalue(&teacher, &sem_status);
+        if(sem_status && !is_queue_empty()) {
+        }
+        pthread_mutex_unlock(&lock);
+    } while(helped_students == STUDENTS * 3);
 }
 
 int check_AE(int code){
@@ -122,6 +137,10 @@ int is_queue_available () {
 }
 
 int init_queue () {
+    for (size_t i = 0; i < QUEUE_MAX; i++) {
+        pthread_cond_init(&queue.chair_action[i].cond, NULL);
+        pthread_mutex_init(&queue.chair_action[i].block, NULL);
+    }
     queue.start = 0;
     queue.number_of_elements = 0;
     return 0;
@@ -134,12 +153,13 @@ int add_in_queue (int code) {
     pthread_mutex_lock(&lock);
     if (is_queue_available()) {
         queue.chair[get_queue_end()] = code;
-        printf("Queue %dº position now holds %d code\n", get_queue_end(), queue.chair[get_queue_end()]);
+        printf("Queue %dº position now holds %d code\n", get_queue_end()+1, queue.chair[get_queue_end()]+1);
         queue.number_of_elements++;
+        pthread_mutex_unlock(&lock);
         return 1;
     }
-    return 0;
     pthread_mutex_unlock(&lock);
+    return 0;
 }
 
 int is_queue_empty () {
@@ -163,4 +183,11 @@ int remove_from_queue (){
 
 int get_queue_end() {
     return (queue.start + queue.number_of_elements) % QUEUE_MAX;
+}
+
+void destroy_queue(){
+    for (size_t i = 0; i < QUEUE_MAX; i++) {
+        pthread_cond_destroy(&queue.chair_action[i].cond);
+        pthread_mutex_destroy(&queue.chair_action[i].block);
+    }
 }
