@@ -9,6 +9,7 @@ Integrantes:
 
 // Includes
 #include <stdio.h>
+#include<unistd.h>
 #include <stdlib.h>
 #include <pthread.h>
 #include <semaphore.h>
@@ -16,16 +17,16 @@ Integrantes:
 
 // Defines
 #define STUDENTS 3
-#define return_back() sleep(srand() % 5)
-#define help_student() sleep(srand() % 5)
+#define QUEUE_MAX (STUDENTS)/2
+#define return_back() usleep(rand() % 500)
+#define help_student() usleep(rand() % 500)
 
 // Structs
-typedef struct  queue_t{
-    int *queue;
-    int size;
-    int full;
-    int head, tail;
-}queue_t;
+typedef struct f {
+    int chair[QUEUE_MAX];
+    short start;
+    short end;
+} queue_t;
 
 // Functions
 void* student(void*);
@@ -33,6 +34,9 @@ void* AE(void*);
 void AE_help(int);
 int check_AE(int);
 int check_queue(int);
+int is_queue_available();
+int add_in_queue(int);
+int remove_from_queue();
 int in_q(int);
 int out_q();
 
@@ -48,7 +52,6 @@ int main(int argc, char const *argv[]) {
     sem_init(&teacher, 0, 1);
     pthread_t students[STUDENTS];
     pthread_mutex_init(&lock, NULL);
-    queue.queue = (int*) malloc((STUDENTS/2)*sizeof(int));
 
     int i = 0;
     // Creating threads
@@ -72,21 +75,25 @@ int main(int argc, char const *argv[]) {
 void* student(void* data){
     int help = 0;
     int code = (int) data;
-    printf("Estudante %d\n", code);
     do {
-        if(!check_AE(code)){
+        if(check_AE(code)){
             help++;
-        }
-        else if(!check_queue(code)){
+            // printf("Ajudado\n");
+            sem_post(&teacher);
+        // }
+        // else if(add_in_queue(code)){
 
         } else {
-            sleep()
+            return_back();
         }
-
     } while(help < 3);
 }
 
-void* AE(void* data) {}
+void* AE(void* data) {
+    do {
+        /* code */
+    } while(helped_students == STUDENTS * 3);
+}
 
 int check_AE(int code){
     if(sem_trywait(&teacher)) {
@@ -101,10 +108,45 @@ void AE_help(int student){
     help_student();
 }
 
-int check_queue(int){
 
+int is_queue_available () {
+    if ((queue.end + 1) % QUEUE_MAX == queue.start) {
+        printf("Full queue, cannot add one more element\n");
+        return 0;
+    }
+    printf("Queue ready to use!");
+    return 1;
 }
 
-int in_q(int){}
+int add_in_queue (int code) {
+    /*Push code into Queue end
+      Return 1 if success
+      Return 0 if fails*/
+    pthread_mutex_lock(&lock);
+    if (is_queue_available()) {
+        queue.chair[queue.end] = code;
+        // printf("Queue %dº position now holds %d code", q->end, q->chair[q->end]);
+        queue.end = (queue.end + 1) % QUEUE_MAX;
+        return 1;
+    }
+    return 0;
+    pthread_mutex_unlock(&lock);
+}
 
-int out_q(){}
+int is_queue_empty () {
+    if (queue.start == queue.end) {
+        return 1;
+    }
+    return 0;
+}
+
+int remove_from_queue (){
+    /*Move the queue start forward
+      Return 1 if success
+      Return 0 if fails*/
+    if (!is_queue_empty) {
+        queue.start = (queue.start + 1) % QUEUE_MAX;
+        return 1;
+    }
+    return 0;
+}
