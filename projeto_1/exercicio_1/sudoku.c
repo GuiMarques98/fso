@@ -3,11 +3,13 @@
 #include <pthread.h>
 #include <string.h>
 
+// ======== CONSTANTS ===
+
+#define ROWS 9
+#define COLS 9
+
 // ======== GLOBAL =======
 
-int cels[9];
-int row[9];
-int col[9];
 int sudoku[9][9];
 pthread_mutex_t mutex;
 
@@ -16,6 +18,7 @@ pthread_mutex_t mutex;
 void* sub_grade(void *);
 void* confirm_row(void*);
 void* confirm_col(void*);
+void writeSudoku(void);
 
 // ======== STRUCTS ======= 
 
@@ -33,16 +36,11 @@ typedef struct MessageLine{
 
 int main(){
 	
-	memset(cels, 0, sizeof(cels));
-	memset(row, 0, sizeof(row));
-	memset(col, 0, sizeof(col));
 	pthread_mutex_init(&mutex, NULL);
 
 	int i,j;
 	
-	for(i=0; i<9; ++i)
-		for(j=0; j<9; ++j)
-			scanf("%d", &sudoku[i][j]);
+	writeSudoku();
 
 	int bool_cols=1, bool_rows=1, bool_cels=1;
 
@@ -176,4 +174,12 @@ void* confirm_row(void* message){
 
 }
 
+void writeSudoku(){
+	int x_axis, y_axis;
 
+	for(x_axis = 0; x_axis < COLS; ++x_axis){
+		for(y_axis = 0; y_axis < ROWS; ++y_axis){
+			scanf("%d", &sudoku[x_axis][y_axis]);
+		}
+	}	
+}
