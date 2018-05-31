@@ -3,12 +3,21 @@
 #include <pthread.h>
 #include <string.h>
 
+// ======== GLOBAL =======
+
 int cels[9];
 int row[9];
 int col[9];
 int sudoku[9][9];
-
 pthread_mutex_t mutex;
+
+// ======== SIGNATURES ====
+
+void* sub_grade(void *);
+void* confirm_row(void*);
+void* confirm_col(void*);
+
+// ======== STRUCTS ======= 
 
 typedef struct MessageSubGrade{
 	int x_axis;
@@ -16,84 +25,11 @@ typedef struct MessageSubGrade{
 	int* boolean_result;
 }MessageSubGrade;
 
-void* sub_grade(void* message){
-	
-	MessageSubGrade* inputMessage;
-
-	inputMessage = (MessageSubGrade*) message;
-
-	int map[9];
-	int boolean_result = 1;
-	int	x_axis, y_axis;
-
-	memset(map, 0, sizeof(map));
-
-	for(x_axis = inputMessage->x_axis-1; x_axis <= inputMessage->x_axis+1; ++x_axis){
-		for(y_axis = inputMessage->y_axis-1; y_axis <= inputMessage->y_axis+1; ++y_axis){
-			map[sudoku[x_axis][y_axis]-1]=1;
-		}
-	}
-
-	for(x_axis=0; x_axis<9; ++x_axis){
-		boolean_result = boolean_result && map[x_axis];
-	}
-
-	pthread_mutex_lock(&mutex);
-	 *inputMessage->boolean_result = *inputMessage->boolean_result && boolean_result;
-	pthread_mutex_unlock(&mutex);
-
-
-}
-
 typedef struct MessageLine{
 	int line;
 	int * boolean_result;
 }MessageLine;
 
-void* confirm_col(void *message){
-
-	MessageLine *inputMessage;
-	inputMessage = (MessageLine*)message;
-
-	int conf[9];
-	int i;
-	int result=1;
-
-	memset(conf, 0, sizeof(conf));
-
-	for(i=0; i<9; ++i)
-		conf[sudoku[i][inputMessage->line]-1]=1;
-
-	for(i=0; i<9; ++i)
-		result = result && conf[i];
-
-	pthread_mutex_lock(&mutex);
-	*inputMessage->boolean_result = *inputMessage->boolean_result && result;
-	pthread_mutex_unlock(&mutex);
-}
-void* confirm_row(void* message){
-
-	MessageLine *inputMessage;
-	inputMessage = (MessageLine*)message;
-
-	int conf[9];
-	int i;
-	int result=1;
-
-	memset(conf, 0, sizeof(conf));
-
-	for(i=0; i<9; ++i)
-		conf[sudoku[inputMessage->line][i]-1]=1;
-
-	for(i=0; i<9; ++i){
-		result = result && conf[i];
-	}
-
-	pthread_mutex_lock(&mutex);
-	*inputMessage->boolean_result = *inputMessage->boolean_result && result;
-	pthread_mutex_unlock(&mutex);
-
-}
 
 int main(){
 	
@@ -163,3 +99,81 @@ int main(){
 	pthread_mutex_destroy(&mutex);
  return 0;
 }
+
+// ======= FUNCTIONS =========
+void* sub_grade(void* message){
+	
+	MessageSubGrade* inputMessage;
+
+	inputMessage = (MessageSubGrade*) message;
+
+	int map[9];
+	int boolean_result = 1;
+	int	x_axis, y_axis;
+
+	memset(map, 0, sizeof(map));
+
+	for(x_axis = inputMessage->x_axis-1; x_axis <= inputMessage->x_axis+1; ++x_axis){
+		for(y_axis = inputMessage->y_axis-1; y_axis <= inputMessage->y_axis+1; ++y_axis){
+			map[sudoku[x_axis][y_axis]-1]=1;
+		}
+	}
+
+	for(x_axis=0; x_axis<9; ++x_axis){
+		boolean_result = boolean_result && map[x_axis];
+	}
+
+	pthread_mutex_lock(&mutex);
+	 *inputMessage->boolean_result = *inputMessage->boolean_result && boolean_result;
+	pthread_mutex_unlock(&mutex);
+
+
+}
+
+void* confirm_col(void *message){
+
+	MessageLine *inputMessage;
+	inputMessage = (MessageLine*)message;
+
+	int conf[9];
+	int i;
+	int result=1;
+
+	memset(conf, 0, sizeof(conf));
+
+	for(i=0; i<9; ++i)
+		conf[sudoku[i][inputMessage->line]-1]=1;
+
+	for(i=0; i<9; ++i)
+		result = result && conf[i];
+
+	pthread_mutex_lock(&mutex);
+	*inputMessage->boolean_result = *inputMessage->boolean_result && result;
+	pthread_mutex_unlock(&mutex);
+}
+
+void* confirm_row(void* message){
+
+	MessageLine *inputMessage;
+	inputMessage = (MessageLine*)message;
+
+	int conf[9];
+	int i;
+	int result=1;
+
+	memset(conf, 0, sizeof(conf));
+
+	for(i=0; i<9; ++i)
+		conf[sudoku[inputMessage->line][i]-1]=1;
+
+	for(i=0; i<9; ++i){
+		result = result && conf[i];
+	}
+
+	pthread_mutex_lock(&mutex);
+	*inputMessage->boolean_result = *inputMessage->boolean_result && result;
+	pthread_mutex_unlock(&mutex);
+
+}
+
+
