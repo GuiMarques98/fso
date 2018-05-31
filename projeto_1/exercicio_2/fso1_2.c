@@ -148,18 +148,18 @@ int init_queue () {
 
 int add_in_queue (int code) {
     /*Push code into Queue end
-      Return 1 if success
-      Return 0 if fails*/
+      Return inserted position if success
+      Return -1 if fails*/
     pthread_mutex_lock(&lock);
     if (is_queue_available()) {
         queue.chair[get_queue_end()] = code;
-        printf("Queue %dº position now holds %d code\n", get_queue_end()+1, queue.chair[get_queue_end()]+1);
         queue.number_of_elements++;
+        printf("Queue %dº position now holds %d code\n", get_queue_end(), queue.chair[get_queue_end()]+1);
         pthread_mutex_unlock(&lock);
-        return 1;
+        return get_queue_end();
     }
     pthread_mutex_unlock(&lock);
-    return 0;
+    return -1;
 }
 
 int is_queue_empty () {
@@ -171,14 +171,15 @@ int is_queue_empty () {
 
 int remove_from_queue (){
     /*Move the queue start forward
-      Return 1 if success
-      Return 0 if fails*/
+      Return removed code if success
+      Return -1 if fails*/
     if (!is_queue_empty) {
+        int code = queue.chair[queue.start];
         queue.start = (queue.start + 1) % QUEUE_MAX;
         queue.number_of_elements--;
-        return 1;
+        return code;
     }
-    return 0;
+    return -1;
 }
 
 int get_queue_end() {
