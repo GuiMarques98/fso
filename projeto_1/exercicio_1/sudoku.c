@@ -19,6 +19,8 @@ void* sub_grade(void *);
 void* confirm_row(void*);
 void* confirm_col(void*);
 void writeSudoku(void);
+void initMutex(void);
+void joinThreads(pthread_t *, int);
 
 // ======== STRUCTS ======= 
 
@@ -33,20 +35,20 @@ typedef struct MessageLine{
 	int * boolean_result;
 }MessageLine;
 
+// ===== MAIN CODE ====
 
 int main(){
 	
-	pthread_mutex_init(&mutex, NULL);
+	initMutex();
 
-	int i,j;
-	
 	writeSudoku();
 
+	int i,j;
 	int bool_cols=1, bool_rows=1, bool_cels=1;
-
 
 	pthread_t grades[9];
 	int thread_cont=0;
+
 	for(i=1; i<9; i+=3){
 		for(j=1; j<9; j+=3){
 			MessageSubGrade message;
@@ -58,11 +60,8 @@ int main(){
 		}
 	}
 	
+	joinThreads(grades, COLS);
 
-	for(i=0; i<9; ++i)
-			pthread_join(grades[i], NULL);
-
-	
 	for(i=0; i<9; ++i){
 		MessageLine message;
 
@@ -71,8 +70,8 @@ int main(){
 		pthread_create(&grades[i], NULL, confirm_row,(void*)&message);
 	}
 
-	for(i=0; i<9; ++i)
-			pthread_join(grades[i], NULL);
+
+	joinThreads(grades, COLS);
 
 	for(i=0; i<9; ++i){
 		MessageLine message;
@@ -81,8 +80,7 @@ int main(){
 		pthread_create(&grades[i], NULL, confirm_col,(void*)&message);
 	}
 
-	for(i=0; i<9; ++i)
-			pthread_join(grades[i], NULL);
+	joinThreads(grades, COLS);
 
 
 	int result = bool_cels && bool_cols && bool_rows;
@@ -182,4 +180,15 @@ void writeSudoku(){
 			scanf("%d", &sudoku[x_axis][y_axis]);
 		}
 	}	
+}
+
+void initMutex(){
+	pthread_mutex_init(&mutex, NULL);
+}
+
+void joinThreads(pthread_t *thread, int threadsSize){
+	int idxThread;
+	for(idxThread=0; idxThread < threadsSize; ++idxThread){
+		pthread_join(thread[idxThread], NULL);
+	}
 }
