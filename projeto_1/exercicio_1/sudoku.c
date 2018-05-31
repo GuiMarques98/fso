@@ -1,112 +1,120 @@
-/*
-Filipe Toyoshima Silva - 16/0049971
-Guilherme Marques Moreira da Silva 16/0029503
-*/
 #include <stdio.h>
 #include <stdlib.h>
-#include <math.h>
 #include <pthread.h>
+#include <string.h>
 
-#define NUM_THREADS 27
-
+int cels[9];
+int row[9];
+int col[9];
 int sudoku[9][9];
 
-void *checkColumn (void *i);
-void *checkLine (void *j);
-void *checkSubsection (void *i);
-
-void readSudoku (char *filename);
-
-
-
-int main (int argc, char *argv[]) {
-    printf("initing program...\n");
-    pthread_t workers[NUM_THREADS];
-    pthread_attr_t attr[NUM_THREADS];
-    printf("toma no cu\n");
-    printf("toma no cu 2.0\n");
-
-    printf("nome recebido: %s\n", argv[1]);
-    readSudoku(argv[1]);
-    int *local = (int*) malloc(9*sizeof(int));
-
-    for (int i=0; i<9; i++) {
-        local[i] = i;
-        pthread_attr_init(&attr[i]);
-        pthread_create(&workers[i], &attr[i], checkColumn,(void *) local[i]);
-        pthread_create(&workers[i+9], &attr[i+9], checkLine,(void *) local[i]);
-        pthread_create(&workers[i+18], &attr[i+18], checkSubsection,(void *) local[i]);
-    }
-
-    for (int i=0; i<NUM_THREADS; i++) {
-        pthread_join(workers[i], NULL);
-    }
-
-    printf("Valid solution!");
-    return 0;
+void debug(){ // remove this function
+	int i,j; 
+	for(i=0; i<9; ++i){
+		for(j=0; j<9; ++j)
+			printf("[%2d]", sudoku[i][j]);
+		printf("\n");
+	}
 }
 
 
-void readSudoku(char *filename) {
-    printf("abrindo arquivo %s", filename);
-    FILE * matrix = fopen(filename, "r");
-    printf("arquivo aberto");
-    if (matrix) {
-        for (int i=0; i<9; i++) {
-            for (int j=0; j<9; j++) {
-                fscanf(matrix, "%d", &sudoku[i][j]);
-            }
-        }
-    }
+void *sub_grade(void * input){
+	/// Evaluate a 3x3 subgrade
+	
+	input = (int*)input;
+	a = input[0];
+	b = input[1];
+	
+	int conf[9];
+	int result = 1, i, j;
+
+	memset(conf, 0, sizeof(conf));
+	
+
+	for(i=a-1; i<=a+1; ++i){
+		for(j=b-1; j<=b+1; ++j){
+			conf[sudoku[i][j]-1]=1;
+		}
+	}
+
+	for(i=0; i<9; ++i)
+		result = result && conf[i];	
+
+	return (void*) result;
 }
 
+int confirm_col(int index){
 
-void *checkColumn(void *param) {
-    int i = *(int*)param;
-    int line[9] = {0};
-    for (int j=0; j<9; j++) {
-        int number = sudoku[i][j];
-        if (line[number] != 0) {
-            printf("fail fount at column %d\n", i);
-            exit(0);
-        }
-        line[number] = 1;
-    };
-    return 0;
+	int conf[9];
+	int i;
+	int result=1;
+
+	memset(conf, 0, sizeof(conf));
+
+	for(i=0; i<9; ++i)
+		conf[sudoku[i][index]-1]=1;
+
+	for(i=0; i<9; ++i)
+		result = result && conf[i];
+
+	return result;
 }
 
+int confirm_row(int index){
+	int conf[9];
+	int i;
+	int result=1;
 
-void *checkLine(void *param) {
-    int j = *(int*)param;
-    int line[9] = {0};
-    for (int i=0; i<9; i++) {
-        int number = sudoku[i][j];
-        if (line[number] != 0) {
-            printf("fail found at line %d\n", j);
-            exit(0);
-        }
-        line[number] = 1;
-    };
-    return 0;
+	memset(conf, 0, sizeof(conf));
+
+	for(i=0; i<9; ++i)
+		conf[sudoku[index][i]-1]=1;
+
+	for(i=0; i<9; ++i){
+		result = result && conf[i];
+	}
+
+
+	return result;
 }
 
-void *checkSubsection(void *param) {
-    int number = *(int*)param;
-    // number to subsection ->
-    // 0 1 2
-    // 3 4 5
-    // 5 7 8
-    int columnStart = (number % 3) * 3;
-    int lineStart = (number / 3) * 3;
-    int line[9] = {0};
-    for (int i=columnStart; i<columnStart+3; i++) {
-        for (int j=lineStart; j<lineStart+3; j++) {
-            int number = sudoku[i][j];
-            if (line[number] != 0) {
-                printf("fail found at subsection %d,%d\n", columnStart/3, lineStart/3);
-                exit(0);
-            }
-            line[number] = 1;
-        }
-    }
+int main(){
+	
+	memset(cels, 0, sizeof(cels));
+	memset(row, 0, sizeof(row));
+	memset(col, 0, sizeof(col));
+
+	int i,j;
+	
+	for(i=0; i<9; ++i)
+		for(j=0; j<9; ++j)
+			scanf("%d", &sudoku[i][j]);
+
+	int bool_cols=1, bool_rows=1, bool_cels=1;
+
+	pthread_t grades[9];
+
+	for(i=1; i<9; i+=3){
+		for(j=1; j<9; j+=3){
+			int vet = {i,j};
+			pthread_create(&grades[i], NULL, sub_grade, arg);
+			bool_cels = bool_cels && sub_grade(i,j);
+		}
+	}
+
+	for(i=0; i<9; ++i){
+		bool_rows = bool_rows && confirm_row(i);
+		bool_cols = bool_cols && confirm_col(i);
+	}
+
+	int result = bool_cels && bool_cols && bool_rows;
+
+	if(result)
+		printf("YES");
+	else
+		printf("NO");
+
+	printf("\n");
+
+ return 0;
 }
