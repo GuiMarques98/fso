@@ -8,6 +8,14 @@ int row[9];
 int col[9];
 int sudoku[9][9];
 
+pthread_mutex_t mutex;
+
+typedef struct MessageSubGrade{
+	int x_axis;
+	int y_axis;
+	int* boolean_result;
+}MessageSubGrade;
+
 void debug(){ // remove this function
 	int i,j; 
 	for(i=0; i<9; ++i){
@@ -18,29 +26,33 @@ void debug(){ // remove this function
 }
 
 
-void *sub_grade(void * input){
-	/// Evaluate a 3x3 subgrade
+void* sub_grade(void* message){
 	
-	input = (int*)input;
-	a = input[0];
-	b = input[1];
-	
-	int conf[9];
-	int result = 1, i, j;
+	MessageSubGrade* inputMessage;
 
-	memset(conf, 0, sizeof(conf));
-	
+	inputMessage = (MessageSubGrade*) message;
 
-	for(i=a-1; i<=a+1; ++i){
-		for(j=b-1; j<=b+1; ++j){
-			conf[sudoku[i][j]-1]=1;
+	int map[9];
+	int boolean_result = 1;
+	int	x_axis, y_axis;
+
+	memset(map, 0, sizeof(map));
+
+	for(x_axis = inputMessage->x_axis-1; x_axis <= inputMessage->x_axis+1; ++x_axis){
+		for(y_axis = inputMessage->y_axis-1; y_axis <= inputMessage->y_axis+1; ++y_axis){
+			map[sudoku[x_axis][y_axis]-1]=1;
 		}
 	}
 
-	for(i=0; i<9; ++i)
-		result = result && conf[i];	
+	for(x_axis=0; x_axis<9; ++x_axis){
+		boolean_result = boolean_result && map[x_axis];
+	}
 
-	return (void*) result;
+	pthread_mutex_lock(&mutex);
+	 *inputMessage->boolean_result = boolean_result;
+	pthread_mutex_unlock(&mutex);
+
+
 }
 
 int confirm_col(int index){
@@ -59,7 +71,6 @@ int confirm_col(int index){
 
 	return result;
 }
-
 int confirm_row(int index){
 	int conf[9];
 	int i;
@@ -83,6 +94,7 @@ int main(){
 	memset(cels, 0, sizeof(cels));
 	memset(row, 0, sizeof(row));
 	memset(col, 0, sizeof(col));
+	pthread_mutex_init(&mutex, NULL);
 
 	int i,j;
 	
@@ -93,12 +105,15 @@ int main(){
 	int bool_cols=1, bool_rows=1, bool_cels=1;
 
 	pthread_t grades[9];
-
+	
 	for(i=1; i<9; i+=3){
 		for(j=1; j<9; j+=3){
-			int vet = {i,j};
-			pthread_create(&grades[i], NULL, sub_grade, arg);
-			bool_cels = bool_cels && sub_grade(i,j);
+			MessageSubGrade message;
+			message.x_axis = i;
+			message.y_axis = j;
+			message.boolean_result = &bool_cels;
+			
+			pthread_create(&grades[i], NULL, sub_grade, (void*)&message);
 		}
 	}
 
@@ -109,6 +124,7 @@ int main(){
 
 	int result = bool_cels && bool_cols && bool_rows;
 
+	printf("[%d]\n", bool_cels);
 	if(result)
 		printf("YES");
 	else
@@ -116,5 +132,6 @@ int main(){
 
 	printf("\n");
 
+	pthread_mutex_destroy(&mutex);
  return 0;
 }
