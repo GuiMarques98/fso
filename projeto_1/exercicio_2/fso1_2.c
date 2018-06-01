@@ -16,10 +16,10 @@ Integrantes:
 #include <time.h>
 
 // Defines
-#define STUDENTS 6
+#define STUDENTS 8
 #define QUEUE_MAX (STUDENTS)/2
-#define return_back() usleep(rand() % 5)
-#define help_student() usleep(rand() % 5)
+#define return_back() usleep((rand() % 500)*1000)
+#define help_student() usleep((rand() % 500)*1000)
 
 // Structs
 typedef struct c{
@@ -50,7 +50,7 @@ void destroy_queue();
 
 
 // Global variables
-int helped_students = 0, CONTADOR_GLOBAL = 0;
+int helped_students = 0;
 sem_t teacher;
 pthread_mutex_t lock;
 queue_t queue;
@@ -65,8 +65,8 @@ int main(int argc, char const *argv[]) {
     pthread_t ae_helper;
     pthread_mutex_init(&lock, NULL);
     init_queue();
-    printf("%d - Começa pelo menos\n", CONTADOR_GLOBAL);
-    CONTADOR_GLOBAL++;
+    printf("MAIN - INICIANDO\n");
+    printf("QUEUE MAX - %d\n", QUEUE_MAX);
 
     int i = 0;
     // Creating threads
@@ -80,7 +80,7 @@ int main(int argc, char const *argv[]) {
     for (size_t i = 0; i < STUDENTS; i++) {
         pthread_join(students[i], NULL);
     }
-    printf("Terminou TUDO \n");
+    printf("MAIN - FINALIZANDO \n");
     // Ending
     destroy_queue();
     sem_destroy(&teacher);
@@ -92,15 +92,18 @@ int main(int argc, char const *argv[]) {
 
 void* student(void* data){
     int help = 0, pos_queue;
-    int code = (int) data;
+    int code = (int) data + 1;
+    printf("STUDENT %d - INICIO\n", code);
     do {
         if(check_AE(code) && is_queue_empty()){
+            printf("ESTUDANTE %d ATENDIDO SEM FILA\n", code);
             AE_help(code);
             help++;
         }
         // Wait in queue until this thread is not call
         else if((pos_queue = add_in_queue(code)) >= 0){
             pthread_mutex_lock(&queue.chair_action[pos_queue].block);
+            printf("ESTUDANTE %d ENTRANDO NA FILA\n", code);
             pthread_cond_wait(&queue.chair_action[pos_queue].cond, &queue.chair_action[pos_queue].block);
             pthread_mutex_unlock(&queue.chair_action[pos_queue].block);
         } else {
@@ -110,6 +113,7 @@ void* student(void* data){
 }
 
 void* AE(void* data) {
+    printf("AE INICIANDO\n");
     int sem_status = 0, chais_block = 0, code = 0;
     do {
         pthread_mutex_lock(&lock);
@@ -117,6 +121,7 @@ void* AE(void* data) {
         if(sem_status && !is_queue_empty()) {
             chais_block = queue.start;
             code = remove_from_queue();
+            printf("AE ATENDENDO O ESTUDANDO %d NA FILA\n", code);
             AE_help(code);
             pthread_cond_signal(&queue.chair_action[chais_block].cond);
         }
@@ -138,8 +143,7 @@ int check_AE(int code){
 
 void AE_help(int student){
     sem_wait(&teacher);
-    printf("%d - AE ajudando o estudante %d.\n", CONTADOR_GLOBAL, student+1);
-    CONTADOR_GLOBAL++;
+    // printf("AE ajudando o estudante %d.\n", student+1);
     helped_students++;
     help_student();
     sem_post(&teacher);
@@ -174,9 +178,9 @@ int add_in_queue (int code) {
         queue.chair[get_queue_end()] = code;
         queue.number_of_elements++;
         // printf("Queue %dº position now holds %d code\n", get_queue_end(), queue.chair[get_queue_end()]+1);
-        printf("%d - Estudante %d está na fila.\n", CONTADOR_GLOBAL, code+1);
-        CONTADOR_GLOBAL++;
+        // printf("Estudante %d está na fila.\n", code+1);
         int end = get_queue_end();
+        printf("ADD IN QUEUE - STUDENT %d Start %d END %d NUMBER OF ELEMENTS %d\n", code, queue.start, get_queue_end(), queue.number_of_elements);
         pthread_mutex_unlock(&lock);
         return end;
     }
@@ -199,6 +203,7 @@ int remove_from_queue (){
         int code = queue.chair[queue.start];
         queue.start = (queue.start + 1) % QUEUE_MAX;
         queue.number_of_elements--;
+        printf("REMOVE FROM QUEUE - STUDENT %d Start %d END %d NUMBER OF ELEMENTS %d\n", code, queue.start, get_queue_end(), queue.number_of_elements);
         return code;
     }
     return -1;
