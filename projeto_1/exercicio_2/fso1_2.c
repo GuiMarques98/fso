@@ -2,14 +2,14 @@
 Problema 2
 Integrantes:
     Guilherme Marques Moreira da Silva 16/0029503
-    Felipe Borges
+    Felipe Borges 16/0049733
     Filipe Toyoshima Silva 16/0049971
 
 */
 
 // Includes
 #include <stdio.h>
-#include<unistd.h>
+#include <unistd.h>
 #include <stdlib.h>
 #include <pthread.h>
 #include <semaphore.h>
@@ -92,6 +92,9 @@ int main(int argc, char const *argv[]) {
 // Functions implementantion
 
 void* student(void* data){
+    /*
+    Simulates a student
+    */
     int help = 0, pos_queue;
     int code = (int) data + 1;
     printf("ST %d : INICIA THREAD\n", code);
@@ -115,6 +118,9 @@ void* student(void* data){
 }
 
 void* AE(void* data) {
+    /*
+    Simulates a AE, this funtcion controls the queue
+    */
     printf(" AE  : INICIA THREAD\n");
     int sem_status = 0, chais_block = 0, code = 0;
     do {
@@ -146,7 +152,6 @@ int check_AE(int code){
 
 void AE_help(int student){
     sem_wait(&teacher);
-    // printf("AE ajudando o estudante %d.\n", student+1);
     helped_students++;
     help_student();
     sem_post(&teacher);
@@ -155,10 +160,8 @@ void AE_help(int student){
 
 int is_queue_available () {
     if (queue.number_of_elements >= QUEUE_MAX) {
-        // printf("Full queue, cannot add one more element\n");
         return 0;
     }
-    // printf("Queue ready to use!\n");
     return 1;
 }
 
@@ -181,8 +184,6 @@ int add_in_queue (int code) {
         queue.chair[get_queue_end()] = code;
         printf("ST %d : SENDO ADICIONADO A FILA NA %dº POSICAO\n", code, get_queue_end());
         queue.number_of_elements++;
-        // printf("Queue %dº position now holds %d code\n", get_queue_end(), queue.chair[get_queue_end()]+1);
-        // printf("Estudante %d está na fila.\n", code+1);
         int end = get_queue_end();
         pthread_mutex_unlock(&lock);
         return (end - 1) % QUEUE_MAX;

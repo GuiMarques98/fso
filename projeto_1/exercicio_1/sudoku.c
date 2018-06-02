@@ -1,3 +1,14 @@
+/*
+Problema 1
+Integrantes:
+    Guilherme Marques Moreira da Silva 16/0029503
+    Felipe Borges 16/0049733
+    Filipe Toyoshima Silva 16/0049971
+
+*/
+
+
+// ===== INCLUDES =======
 #include <stdio.h>
 #include <stdlib.h>
 #include <pthread.h>
@@ -22,7 +33,7 @@ void writeSudoku(void);
 void initMutex(void);
 void joinThreads(pthread_t *, int);
 
-// ======== STRUCTS ======= 
+// ======== STRUCTS =======
 
 typedef struct MessageSubGrade{
 	int x_axis;
@@ -38,7 +49,7 @@ typedef struct MessageLine{
 // ===== MAIN CODE ====
 
 int main(){
-	
+
 	initMutex();
 
 	writeSudoku();
@@ -55,11 +66,11 @@ int main(){
 			message.x_axis = i;
 			message.y_axis = j;
 			message.boolean_result = &bool_cels;
-			
+
 			pthread_create(&grades[thread_cont++], NULL, sub_grade, (void*)&message);
 		}
 	}
-	
+
 	joinThreads(grades, COLS);
 
 	for(i=0; i<9; ++i){
@@ -98,7 +109,7 @@ int main(){
 
 // ======= FUNCTIONS =========
 void* sub_grade(void* message){
-	
+
 	MessageSubGrade* inputMessage;
 
 	inputMessage = (MessageSubGrade*) message;
@@ -179,7 +190,7 @@ void writeSudoku(){
 		for(y_axis = 0; y_axis < ROWS; ++y_axis){
 			scanf("%d", &sudoku[x_axis][y_axis]);
 		}
-	}	
+	}
 }
 
 void initMutex(){
