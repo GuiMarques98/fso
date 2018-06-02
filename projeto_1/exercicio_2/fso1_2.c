@@ -16,7 +16,7 @@ Integrantes:
 #include <time.h>
 
 // Defines
-#define STUDENTS 4
+#define STUDENTS 20
 #define QUEUE_MAX (STUDENTS/2)
 #define return_back() usleep((rand() % 500)*1000)
 #define help_student() usleep((rand() % 500)*1000)
@@ -102,7 +102,12 @@ void* student(void* data){
         if(check_AE(code) && is_queue_empty()){
             printf("ST %d : ATENDIDO SEM FILA\n", code);
             AE_help(code);
+            pthread_mutex_lock(&lock);
             help++;
+            helped_students += 1;
+            // printf("AE : ESTUDANTES AJUDADOS NO %d - ESTUDANTES MAXIMOS %d\n\n", helped_students, STUDENTS * 3);
+            // printf("ST : ESTUDANTE %d AJUDADO %d VEZES\n\n",code, help);
+            pthread_mutex_unlock(&lock);
         }
         // Wait in queue until this thread is not call
         else if((pos_queue = add_in_queue(code)) >= 0){
@@ -110,8 +115,13 @@ void* student(void* data){
             printf("ST %d : ADICIONADO A %dº POS DA FILA\n", code, pos_queue);
             print_queue();
             pthread_cond_wait(&queue.chair_action[pos_queue].cond, &queue.chair_action[pos_queue].block);
+            help++;
+            helped_students += 1;
+            // printf("AE : ESTUDANTES AJUDADOS NO %d - ESTUDANTES MAXIMOS %d\n\n", helped_students, STUDENTS * 3);
+            // printf("ST : ESTUDANTE %d AJUDADO %d VEZES\n\n",code, help);
             pthread_mutex_unlock(&queue.chair_action[pos_queue].block);
         } else {
+            // printf("return back %d\n", code);
             return_back();
         }
     } while(help < 3);
@@ -136,6 +146,9 @@ void* AE(void* data) {
         }
         pthread_mutex_unlock(&lock);
     } while(helped_students < (STUDENTS * 3));
+
+    printf(" AE  : FINALIZANDO THREAD\n");
+
 }
 
 int check_AE(int code){
@@ -152,7 +165,6 @@ int check_AE(int code){
 
 void AE_help(int student){
     sem_wait(&teacher);
-    helped_students++;
     help_student();
     sem_post(&teacher);
 }
