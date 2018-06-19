@@ -14,11 +14,11 @@
 
 struct Page{
 	int pageNumber;
-	char value;
+	unsigned char value[2];
 };
 
 struct Frame{
-	char value;
+	unsigned char value[2];
 };
 
 struct PageTable{
@@ -34,8 +34,6 @@ struct Message{
 	unsigned short offset;
 };
 
-
-
 // FUNCTIONS
 int searchInPageTable(int key);
 void viewBinary(unsigned short);
@@ -44,7 +42,6 @@ struct Message convertToMessage(unsigned short);
 void clearMemory(void);
 void clearPageTable(void);
 int getEmptyPhisicalMemory(void);
-
 
 // === GLOBAL === 
 
@@ -73,6 +70,7 @@ int main(int argc, char *argv[]){
 		inputString = convertString(string);
   		input = convertToMessage(inputString);
 
+  		// procura na tabela de paginação
 		if(searchInPageTable(input.frame) == NOT_FOUND){
 		
 			int local = getEmptyPhisicalMemory();
@@ -81,16 +79,20 @@ int main(int argc, char *argv[]){
 				printf("Memory FULL\n");
 			}else{
 				
+				//retira do arquivo 
 				FILE *backing = fopen("BACKING_STORE.bin", "rb");
 				if(backing==NULL)
 					printf("NAO TA ABRINDO O ARQUIVO\n");
 
 
-				fseek(backing, 0, SEEK_SET);
-				fread(&string2, 1, 1, backing);
-			
-				printf("Hexa: "); printf("%x\n", convertString(string2));	
-				printf("Binary : "); viewBinary(convertString(string2));	
+				fseek(backing, input.offset*2, SEEK_SET);
+				unsigned char a[2];
+				fread(&a, sizeof(char)*2, 1, backing);
+				printf("%x%x\n", a[0], a[1]);
+
+				strncpy(memory.frames[local].value, a, 2);
+
+
 			}
 		}
 	}
@@ -101,14 +103,15 @@ int main(int argc, char *argv[]){
 void clearMemory(){
 	int i;
 	for(i=0; i<MEMORY; ++i){
-		memory.frames[i].value = 0;
+		memory.frames[i].value[0] = 0;
+		memory.frames[i].value[1] = 0;
 	}
 }
 
 int getEmptyPhisicalMemory(){
 	int i;
 	for(i=0; i<MEMORY; ++i)
-		if(memory.frames[i].value == 0)
+		if((memory.frames[i].value[0] == 0) && (memory.frames[i].value[1] == 0)) 
 			return 0;
 	return -1;
 }
