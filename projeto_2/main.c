@@ -56,37 +56,43 @@ int main(int argc, char *argv[]){
 	
 	FILE *file;
 	char *string = NULL;
+	char string2[100];
 	size_t len = 0;
 	size_t taked;
 
 	file = fopen(argv[1], "r");
+
+	clearPageTable();
+	clearMemory();
 
 	while(getdelim(&string, &len, ' ', file)!=EOF){
 		
 		struct Message input;
 		unsigned int inputString;
 
-		printf("%s\n", string);
 		inputString = convertString(string);
-		printf("%d\n", inputString);	
-		input = convertToMessage(inputString);
-		viewBinary(inputString);
+  		input = convertToMessage(inputString);
 
 		if(searchInPageTable(input.frame) == NOT_FOUND){
 		
-			int local = getEmptyPhisicalMemory();;
-			viewBinary(input.frame);
+			int local = getEmptyPhisicalMemory();
 		
 			if(local == -1){
 				printf("Memory FULL\n");
 			}else{
+				
 				FILE *backing = fopen("BACKING_STORE.bin", "rb");
-				fseek(backing, input.offset*256, SEEK_SET);
-				getdelim(&string, &len, ' ', backing);
-				printf("%x\n", convertString(string));
+				if(backing==NULL)
+					printf("NAO TA ABRINDO O ARQUIVO\n");
+
+
+				fseek(backing, 0, SEEK_SET);
+				fread(&string2, 1, 1, backing);
+			
+				printf("Hexa: "); printf("%x\n", convertString(string2));	
+				printf("Binary : "); viewBinary(convertString(string2));	
 			}
 		}
-		printf("NAO\n");
 	}
 
  return 0;
@@ -133,16 +139,15 @@ struct Message convertToMessage(unsigned short number){
 }
 
 unsigned int convertString(char *s){
-	unsigned int number = 0;
+	int number = 0;
 	int idx;
 
-	for(idx = 0; s[idx]!= '\0'; ++idx){
+	for(idx=0; s[idx]!= '\0' && s[idx]!=' ' ; ++idx){
 		number*= 10;
-		number+=s[idx] - '0';
+		number+=(s[idx] - '0');
 	}
 
 	return number;
-
 }
 
 void viewBinary(unsigned short number){
